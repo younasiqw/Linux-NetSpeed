@@ -1,24 +1,5 @@
 #!/usr/bin/env bash
 #
-# #------------------------------------------------------------------#
-# |   LemonBench 服务器测试工具      LemonBench Server Test Utility   |
-# #------------------------------------------------------------------#
-# | Written by iLemonrain <ilemonrain@ilemonrain.com>                |
-# | My Blog: https://ilemonrain.com                                  |
-# | Telegram: https://t.me/ilemonrain                                |
-# | Telegram (For +86 User): https://t.me/ilemonrain_chatbot         |
-# | Telegram Channel: https://t.me/ilemonrain_channel                |
-# #------------------------------------------------------------------#
-# | If you like this project, feel free to donate!                   |
-# | 如果你喜欢这个项目, 欢迎投喂打赏！                                  |
-# |                                                                  |
-# | Donate Method 打赏方式:                                          |
-# | Alipay QR Code: http://t.cn/EA3pZNt                              |
-# | 支付宝二维码:http://t.cn/EA3pZNt                                 |
-# | Wechat QR Code: http://t.cn/EA3p639                              |
-# | 微信二维码: http://t.cn/EA3p639                                   |
-# #------------------------------------------------------------------#
-#
 # 使用方法 (任选其一):
 # (1) wget -O- https://ilemonrain.com/download/shell/LemonBench.sh | bash
 # (2) curl -fsL https://ilemonrain.com/download/shell/LemonBench.sh | bash
