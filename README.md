@@ -9,3 +9,7 @@ chmod +x tcp.sh
 ```
 wget -N --no-check-certificate "https://raw.githubusercontent.com/younasiqw/Linux-NetSpeed/master/tcp.sh" && chmod +x tcp.sh && ./tcp.sh
 ```
+流媒体测试脚本:
+```
+curl -fsL https://raw.githubusercontent.com/younasiqw/Linux-NetSpeed/master/Streamingtest.sh | bash -s fast
+```
