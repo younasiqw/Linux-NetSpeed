@@ -620,6 +620,7 @@ case "$num" in
 	;;
 	15)
 	tcp_tune
+	;;
 	*)
 	clear
 	echo -e "${Error}:请输入正确数字 [0-11]"
