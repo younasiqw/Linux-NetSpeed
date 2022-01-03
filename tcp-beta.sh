@@ -585,9 +585,6 @@ case "$num" in
 	3)
 	check_sys_Lotsever
 	;;
-	12)
-	check_sys_bbrneko
-	;;
 	4)
 	startbbr
 	;;
@@ -603,23 +600,26 @@ case "$num" in
 	8)
 	startlotserver
 	;;
-	13)
-	startbbrneko
-	;;
 	9)
 	remove_all
 	;;
 	10)
 	optimizing_system
 	;;
+	11)
+	exit 1
+	;;
+	12)
+	check_sys_bbrneko
+	;;
+	13)
+	startbbrneko
+	;;
 	14)
 	enable_forwarding
 	;;
 	15)
 	tcp_tune
-	;;
-	11)
-	exit 1
 	;;
 	*)
 	clear
