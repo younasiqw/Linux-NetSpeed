@@ -13,3 +13,7 @@ wget -N --no-check-certificate "https://raw.githubusercontent.com/younasiqw/Linu
 ```
 curl -fsL https://raw.githubusercontent.com/younasiqw/Linux-NetSpeed/master/Streamingtest.sh | bash -s fast
 ```
+BBR(neko):
+```
+wget -N --no-check-certificate "https://git.io/BBRTools" && chmod +x tools.sh && ./tools.sh
+```
