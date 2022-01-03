@@ -104,6 +104,58 @@ installlot(){
 	fi
 }
 
+#安装 BBR(Neko优化)内核
+installbbrneko(){
+	kernel_version="5.9.6"
+	bit=`uname -m`
+	rm -rf bbr
+	mkdir bbr && cd bbr
+	
+	if [[ "${release}" == "centos" ]]; then
+		if [[ ${version} = "7" ]]; then
+			if [[ ${bit} = "x86_64" ]]; then
+				detele_kernel_head
+				rpm -import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+                rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-2.el7.elrepo.noarch.rpm
+                yum -y --enablerepo=elrepo-kernel install kernel-ml.x86_64 kernel-ml-devel.x86_64 kernel-ml-headers
+			else
+				echo -e "${Error} 不支持x86_64以外的系统 !" && exit 1
+			fi
+		fi
+		
+	elif [[ "${release}" == "ubuntu" || "${release}" == "debian" ]]; then
+		if [[ ${bit} = "x86_64" || ${bit} = "aarch64" ]]; then
+			kernel_version="5.14.9"
+			detele_kernel_head
+			headurl="http://sh.nekoneko.cloud/bbr/linux-headers-5.14.9_5.14.9-1_amd64.deb"
+			imgurl="http://sh.nekoneko.cloud/bbr/linux-image-5.14.9_5.14.9-1_amd64.deb"
+			echo -e "正在检查headers下载连接...."
+			checkurl $headurl
+			echo -e "正在检查内核下载连接...."
+			checkurl $imgurl
+			wget -N -O linux-headers-d10.deb $headurl
+			wget -N -O linux-image-d10.deb $imgurl
+			dpkg -i linux-image-d10.deb
+			dpkg -i linux-headers-d10.deb
+		else
+			echo -e "${Error} 不支持x86_64及arm64/aarch64以外的系统 !" && exit 1	
+		fi
+	fi
+	
+	cd .. && rm -rf bbr	
+	
+	BBR_grub
+	echo -e "${Tip} 内核安装完毕，请参考上面的信息检查是否安装成功,默认从排第一的高版本内核启动"
+	check_kernel
+	echo -e "${Tip} 重启VPS后，请重新运行脚本开启${Red_font_prefix}Lotserver${Font_color_suffix}"
+	stty erase '^H' && read -p "需要重启VPS后，才能开启Lotserver，是否现在重启 ? [Y/n] :" yn
+	[ -z "${yn}" ] && yn="y"
+	if [[ $yn == [Yy] ]]; then
+		echo -e "${Info} VPS 重启中..."
+		reboot
+	fi
+}
+
 #启用BBR
 startbbr(){
 	remove_all
@@ -200,6 +252,16 @@ startbbrmod_nanqinlang(){
 	echo -e "${Info}魔改版BBR启动成功！"
 }
 
+#启用BBRneko
+startbbrneko(){
+	remove_bbr_lotserver
+	echo "net.core.default_qdisc=fq" > /etc/sysctl.d/99-sysctl.conf
+	echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.d/99-sysctl.conf
+	sysctl --system
+	echo -e "${Info}BBRneko，重启生效！"
+	check_kernel
+}
+
 #启用Lotserver
 startlotserver(){
 	remove_all
@@ -222,8 +284,8 @@ maxmode=\"1\"">>/appex/etc/config
 remove_all(){
 	rm -rf bbrmod
 	sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
-    sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
-    sed -i '/fs.file-max/d' /etc/sysctl.conf
+        sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
+        sed -i '/fs.file-max/d' /etc/sysctl.conf
 	sed -i '/net.core.rmem_max/d' /etc/sysctl.conf
 	sed -i '/net.core.wmem_max/d' /etc/sysctl.conf
 	sed -i '/net.core.rmem_default/d' /etc/sysctl.conf
@@ -256,6 +318,13 @@ remove_all(){
 	sed -i '/net.core.netdev_max_backlog/d' /etc/sysctl.conf
 	sed -i '/net.ipv4.tcp_timestamps/d' /etc/sysctl.conf
 	sed -i '/net.ipv4.tcp_max_orphans/d' /etc/sysctl.conf
+	sed -i '/net.ipv4.tcp_ecn/d' /etc/sysctl.d/99-sysctl.conf
+	sed -i '/net.core.default_qdisc/d' /etc/sysctl.d/99-sysctl.conf
+	sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.d/99-sysctl.conf
+	sed -i '/net.ipv4.tcp_ecn/d' /etc/sysctl.conf
+	sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
+	sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
+	sysctl --system
 	if [[ -e /appex/bin/lotServer.sh ]]; then
 		bash <(wget --no-check-certificate -qO- https://github.com/MoeClub/lotServer/raw/master/Install.sh) uninstall
 	fi
@@ -310,6 +379,142 @@ net.ipv4.ip_forward = 1">>/etc/sysctl.conf
 		reboot
 	fi
 }
+
+#开启内核转发
+enable_forwarding(){
+sed -i '/net.ipv4.conf.all.route_localnet/d' /etc/sysctl.conf
+sed -i '/net.ipv4.ip_forward/d' /etc/sysctl.conf
+sed -i '/net.ipv4.conf.all.forwarding/d' /etc/sysctl.conf
+sed -i '/net.ipv4.conf.default.forwarding/d' /etc/sysctl.conf
+cat >> '/etc/sysctl.conf' << EOF
+net.ipv4.conf.all.route_localnet=1
+net.ipv4.ip_forward=1
+net.ipv4.conf.all.forwarding=1
+net.ipv4.conf.default.forwarding=1
+EOF
+sysctl -p && sysctl --system
+}
+
+banping(){
+sed -i '/net.ipv4.icmp_echo_ignore_all/d' /etc/sysctl.conf
+sed -i '/net.ipv4.icmp_echo_ignore_broadcasts/d' /etc/sysctl.conf
+cat >> '/etc/sysctl.conf' << EOF
+net.ipv4.icmp_echo_ignore_all=1
+net.ipv4.icmp_echo_ignore_broadcasts=1
+EOF
+sysctl -p && sysctl --system
+}
+unbanping(){
+sed -i "s/net.ipv4.icmp_echo_ignore_all=1/net.ipv4.icmp_echo_ignore_all=0/g" /etc/sysctl.conf
+sed -i "s/net.ipv4.icmp_echo_ignore_broadcasts=1/net.ipv4.icmp_echo_ignore_broadcasts=0/g" /etc/sysctl.conf
+sysctl -p && sysctl --system
+}
+
+ulimit_tune(){
+
+echo "1000000" > /proc/sys/fs/file-max
+sed -i '/fs.file-max/d' /etc/sysctl.conf
+cat >> '/etc/sysctl.conf' << EOF
+fs.file-max=1000000
+EOF
+
+ulimit -SHn 1000000 && ulimit -c unlimited
+echo "root     soft   nofile    1000000
+root     hard   nofile    1000000
+root     soft   nproc     1000000
+root     hard   nproc     1000000
+root     soft   core      1000000
+root     hard   core      1000000
+root     hard   memlock   unlimited
+root     soft   memlock   unlimited
+
+*     soft   nofile    1000000
+*     hard   nofile    1000000
+*     soft   nproc     1000000
+*     hard   nproc     1000000
+*     soft   core      1000000
+*     hard   core      1000000
+*     hard   memlock   unlimited
+*     soft   memlock   unlimited
+">/etc/security/limits.conf
+if grep -q "ulimit" /etc/profile; then
+  :
+else
+  sed -i '/ulimit -SHn/d' /etc/profile
+  echo "ulimit -SHn 1000000" >>/etc/profile
+fi
+if grep -q "pam_limits.so" /etc/pam.d/common-session; then
+  :
+else
+  sed -i '/required pam_limits.so/d' /etc/pam.d/common-session
+  echo "session required pam_limits.so" >>/etc/pam.d/common-session
+fi
+
+sed -i '/DefaultTimeoutStartSec/d' /etc/systemd/system.conf
+sed -i '/DefaultTimeoutStopSec/d' /etc/systemd/system.conf
+sed -i '/DefaultRestartSec/d' /etc/systemd/system.conf
+sed -i '/DefaultLimitCORE/d' /etc/systemd/system.conf
+sed -i '/DefaultLimitNOFILE/d' /etc/systemd/system.conf
+sed -i '/DefaultLimitNPROC/d' /etc/systemd/system.conf
+
+cat >>'/etc/systemd/system.conf' <<EOF
+[Manager]
+#DefaultTimeoutStartSec=90s
+DefaultTimeoutStopSec=30s
+#DefaultRestartSec=100ms
+DefaultLimitCORE=infinity
+DefaultLimitNOFILE=65535
+DefaultLimitNPROC=65535
+EOF
+
+systemctl daemon-reload
+
+}
+
+# 优化TCP(neko)
+tcp_tune(){
+sed -i '/net.ipv4.tcp_no_metrics_save/d' /etc/sysctl.conf
+sed -i '/net.ipv4.tcp_no_metrics_save/d' /etc/sysctl.conf
+sed -i '/net.ipv4.tcp_ecn/d' /etc/sysctl.conf
+sed -i '/net.ipv4.tcp_frto/d' /etc/sysctl.conf
+sed -i '/net.ipv4.tcp_mtu_probing/d' /etc/sysctl.conf
+sed -i '/net.ipv4.tcp_rfc1337/d' /etc/sysctl.conf
+sed -i '/net.ipv4.tcp_sack/d' /etc/sysctl.conf
+sed -i '/net.ipv4.tcp_fack/d' /etc/sysctl.conf
+sed -i '/net.ipv4.tcp_window_scaling/d' /etc/sysctl.conf
+sed -i '/net.ipv4.tcp_adv_win_scale/d' /etc/sysctl.conf
+sed -i '/net.ipv4.tcp_moderate_rcvbuf/d' /etc/sysctl.conf
+sed -i '/net.ipv4.tcp_rmem/d' /etc/sysctl.conf
+sed -i '/net.ipv4.tcp_wmem/d' /etc/sysctl.conf
+sed -i '/net.core.rmem_max/d' /etc/sysctl.conf
+sed -i '/net.core.wmem_max/d' /etc/sysctl.conf
+sed -i '/net.ipv4.udp_rmem_min/d' /etc/sysctl.conf
+sed -i '/net.ipv4.udp_wmem_min/d' /etc/sysctl.conf
+sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
+sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
+cat >> /etc/sysctl.conf << EOF
+net.ipv4.tcp_no_metrics_save=1
+net.ipv4.tcp_ecn=0
+net.ipv4.tcp_frto=0
+net.ipv4.tcp_mtu_probing=0
+net.ipv4.tcp_rfc1337=0
+net.ipv4.tcp_sack=1
+net.ipv4.tcp_fack=1
+net.ipv4.tcp_window_scaling=1
+net.ipv4.tcp_adv_win_scale=1
+net.ipv4.tcp_moderate_rcvbuf=1
+net.core.rmem_max=16777216
+net.core.wmem_max=16777216
+net.ipv4.tcp_rmem=4096 87380 16777216
+net.ipv4.tcp_wmem=4096 16384 16777216
+net.ipv4.udp_rmem_min=8192
+net.ipv4.udp_wmem_min=8192
+net.core.default_qdisc=fq
+net.ipv4.tcp_congestion_control=bbr
+EOF
+sysctl -p && sysctl --system
+}
+
 #更新脚本
 Update_Shell(){
 	echo -e "当前版本为 [ ${sh_ver} ]，开始检测最新版本..."
@@ -354,6 +559,7 @@ echo && echo -e " TCP加速 一键安装管理脚本 ${Red_font_prefix}[v${sh_ve
  ${Green_font_prefix}9.${Font_color_suffix} 卸载全部加速
  ${Green_font_prefix}10.${Font_color_suffix} 系统配置优化
  ${Green_font_prefix}14.${Font_color_suffix} 内核转发(慎用)
+ ${Green_font_prefix}15.${Font_color_suffix} 优化TCP(neko)
  ${Green_font_prefix}11.${Font_color_suffix} 退出脚本
 ————————————————————————————————" && echo
 
@@ -401,6 +607,18 @@ case "$num" in
 	optimizing_system
 	;;
 	11)
+	check_sys_bbrneko
+	;;
+	12)
+	startbbrneko
+	;;
+	13)
+	enable_forwarding
+	;;
+	14)
+	tcp_tune
+	;;
+	15)
 	exit 1
 	;;
 	*)
@@ -490,6 +708,129 @@ check_sys(){
 	elif cat /proc/version | grep -q -E -i "centos|red hat|redhat"; then
 		release="centos"
     fi
+
+get_opsy() {
+    [ -f /etc/redhat-release ] && awk '{print ($1,$3~/^[0-9]/?$3:$4)}' /etc/redhat-release && return
+    [ -f /etc/os-release ] && awk -F'[= "]' '/PRETTY_NAME/{print $3,$4,$5}' /etc/os-release && return
+    [ -f /etc/lsb-release ] && awk -F'[="]+' '/DESCRIPTION/{print $2}' /etc/lsb-release && return
+}
+get_system_info() {
+	cname=$( awk -F: '/model name/ {name=$2} END {print name}' /proc/cpuinfo | sed 's/^[ \t]*//;s/[ \t]*$//' )
+	cores=$( awk -F: '/model name/ {core++} END {print core}' /proc/cpuinfo )
+	freq=$( awk -F: '/cpu MHz/ {freq=$2} END {print freq}' /proc/cpuinfo | sed 's/^[ \t]*//;s/[ \t]*$//' )
+	corescache=$( awk -F: '/cache size/ {cache=$2} END {print cache}' /proc/cpuinfo | sed 's/^[ \t]*//;s/[ \t]*$//' )
+	tram=$( free -m | awk '/Mem/ {print $2}' )
+	uram=$( free -m | awk '/Mem/ {print $3}' )
+	bram=$( free -m | awk '/Mem/ {print $6}' )
+	swap=$( free -m | awk '/Swap/ {print $2}' )
+	uswap=$( free -m | awk '/Swap/ {print $3}' )
+	up=$( awk '{a=$1/86400;b=($1%86400)/3600;c=($1%3600)/60} {printf("%d days %d hour %d min\n",a,b,c)}' /proc/uptime )
+	load=$( w | head -1 | awk -F'load average:' '{print $2}' | sed 's/^[ \t]*//;s/[ \t]*$//' )
+	opsy=$( get_opsy )
+	arch=$( uname -m )
+	lbit=$( getconf LONG_BIT )
+	kern=$( uname -r )
+
+	# disk_size1=$( LANG=C df -hPl | grep -wvE '\-|none|tmpfs|overlay|shm|udev|devtmpfs|by-uuid|chroot|Filesystem' | awk '{print $2}' )
+	# disk_size2=$( LANG=C df -hPl | grep -wvE '\-|none|tmpfs|overlay|shm|udev|devtmpfs|by-uuid|chroot|Filesystem' | awk '{print $3}' )
+	# disk_total_size=$( calc_disk ${disk_size1[@]} )
+	# disk_used_size=$( calc_disk ${disk_size2[@]} )
+
+	tcpctrl=$( sysctl net.ipv4.tcp_congestion_control | awk -F ' ' '{print $3}' )
+
+	virt_check
+}
+virt_check(){
+	# if hash ifconfig 2>/dev/null; then
+		# eth=$(ifconfig)
+	# fi
+
+	virtualx=$(dmesg) 2>/dev/null
+
+    if  [ $(which dmidecode) ]; then
+		sys_manu=$(dmidecode -s system-manufacturer) 2>/dev/null
+		sys_product=$(dmidecode -s system-product-name) 2>/dev/null
+		sys_ver=$(dmidecode -s system-version) 2>/dev/null
+	else
+		sys_manu=""
+		sys_product=""
+		sys_ver=""
+	fi
+	
+	if grep docker /proc/1/cgroup -qa; then
+	    virtual="Docker"
+	elif grep lxc /proc/1/cgroup -qa; then
+		virtual="Lxc"
+	elif grep -qa container=lxc /proc/1/environ; then
+		virtual="Lxc"
+	elif [[ -f /proc/user_beancounters ]]; then
+		virtual="OpenVZ"
+	elif [[ "$virtualx" == *kvm-clock* ]]; then
+		virtual="KVM"
+	elif [[ "$cname" == *KVM* ]]; then
+		virtual="KVM"
+	elif [[ "$cname" == *QEMU* ]]; then
+		virtual="KVM"
+	elif [[ "$virtualx" == *"VMware Virtual Platform"* ]]; then
+		virtual="VMware"
+	elif [[ "$virtualx" == *"Parallels Software International"* ]]; then
+		virtual="Parallels"
+	elif [[ "$virtualx" == *VirtualBox* ]]; then
+		virtual="VirtualBox"
+	elif [[ -e /proc/xen ]]; then
+		virtual="Xen"
+	elif [[ "$sys_manu" == *"Microsoft Corporation"* ]]; then
+		if [[ "$sys_product" == *"Virtual Machine"* ]]; then
+			if [[ "$sys_ver" == *"7.0"* || "$sys_ver" == *"Hyper-V" ]]; then
+				virtual="Hyper-V"
+			else
+				virtual="Microsoft Virtual Machine"
+			fi
+		fi
+	else
+		virtual="Dedicated母鸡"
+	fi
+}
+
+if ! type curl >/dev/null 2>&1; then
+    echo 'curl 未安装 安装中'
+	apt-get update && apt-get install curl -y || yum install curl -y
+else
+    echo 'curl 已安装，继续'
+fi
+
+if ! type wget >/dev/null 2>&1; then
+    echo 'wget 未安装 安装中';
+	apt-get update && apt-get install wget -y || yum install curl -y
+else
+    echo 'wget 已安装，继续'
+fi
+
+if ! type dmidecode >/dev/null 2>&1; then
+    echo 'dmidecode 未安装 安装中';
+	apt-get update && apt-get install dmidecode -y || yum install dmidecode -y
+else
+    echo 'dmidecode 已安装，继续'
+fi
+
+#检查依赖
+if [[ "${release}" == "centos" ]]; then
+		if (yum list installed ca-certificates | grep '202'); then
+			echo 'CA证书检查OK'
+		else
+			echo 'CA证书检查不通过，处理中'
+			yum install ca-certificates dmidecode -y
+			update-ca-trust force-enable
+			fi
+	elif [[ "${release}" == "debian" || "${release}" == "ubuntu" ]]; then
+		if (apt list --installed | grep 'ca-certificates' | grep '202');then
+			echo 'CA证书检查OK'
+		else
+			echo 'CA证书检查不通过，处理中'
+			apt-get install ca-certificates dmidecode -y
+			update-ca-certificates
+		fi	
+	fi
 }
 
 #检查Linux版本
@@ -558,6 +899,31 @@ check_sys_bbrplus(){
 	fi
 }
 
+#检查安装bbr(neko)的系统要求
+check_sys_bbrneko(){
+	check_version
+	if [[ "${release}" == "centos" ]]; then
+		if [[ ${version} -ge "6" ]]; then
+			installbbrneko
+		else
+			echo -e "${Error} BBR内核不支持当前系统 ${release} ${version} ${bit} !" && exit 1
+		fi
+	elif [[ "${release}" == "debian" ]]; then
+		if [[ ${version} -ge "8" ]]; then
+			installbbrneko
+		else
+			echo -e "${Error} BBR内核不支持当前系统 ${release} ${version} ${bit} !" && exit 1
+		fi
+	elif [[ "${release}" == "ubuntu" ]]; then
+		if [[ ${version} -ge "14" ]]; then
+			installbbrneko
+		else
+			echo -e "${Error} BBR内核不支持当前系统 ${release} ${version} ${bit} !" && exit 1
+		fi
+	else
+		echo -e "${Error} BBR内核不支持当前系统 ${release} ${version} ${bit} !" && exit 1
+	fi
+}
 
 #检查安装Lotsever的系统要求
 check_sys_Lotsever(){
