@@ -15,5 +15,5 @@ curl -fsL https://raw.githubusercontent.com/younasiqw/Linux-NetSpeed/master/Stre
 ```
 BBR(neko):
 ```
-wget -N --no-check-certificate "https://git.io/BBRTools" && chmod +x tools.sh && ./tools.sh
+wget -N --no-check-certificate "https://raw.githubusercontent.com/younasiqw/Linux-NetSpeed/master/tools.sh" && chmod +x tools.sh && ./tools.sh
 ```
