@@ -903,23 +903,14 @@ check_sys_bbrplus(){
 check_sys_bbrneko(){
 	check_version
 	if [[ "${release}" == "centos" ]]; then
-		if [[ ${version} -ge "6" ]]; then
+		if [[ ${version} = "7" ]]; then
 			installbbrneko
 		else
 			echo -e "${Error} BBR内核不支持当前系统 ${release} ${version} ${bit} !" && exit 1
 		fi
-	elif [[ "${release}" == "debian" ]]; then
-		if [[ ${version} -ge "8" ]]; then
-			installbbrneko
-		else
-			echo -e "${Error} BBR内核不支持当前系统 ${release} ${version} ${bit} !" && exit 1
-		fi
-	elif [[ "${release}" == "ubuntu" ]]; then
-		if [[ ${version} -ge "14" ]]; then
-			installbbrneko
-		else
-			echo -e "${Error} BBR内核不支持当前系统 ${release} ${version} ${bit} !" && exit 1
-		fi
+	elif [[ "${release}" == "debian" || "${release}" == "ubuntu" ]]; then
+		apt-get --fix-broken install -y && apt-get autoremove -y
+		installbbrneko
 	else
 		echo -e "${Error} BBR内核不支持当前系统 ${release} ${version} ${bit} !" && exit 1
 	fi
