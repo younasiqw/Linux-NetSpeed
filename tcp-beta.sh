@@ -573,6 +573,7 @@ echo && echo -e " TCP加速 一键安装管理脚本 ${Red_font_prefix}[v${sh_ve
 echo
 read -p " 请输入数字 [0-11]:" num
 case "$num" in
+case "$num" in
 	0)
 	Update_Shell
 	;;
@@ -584,6 +585,9 @@ case "$num" in
 	;;
 	3)
 	check_sys_Lotsever
+	;;
+	12)
+	check_sys_bbrneko
 	;;
 	4)
 	startbbr
@@ -600,17 +604,14 @@ case "$num" in
 	8)
 	startlotserver
 	;;
+	13)
+	startbbrneko
+	;;
 	9)
 	remove_all
 	;;
 	10)
 	optimizing_system
-	;;
-	12)
-	check_sys_bbrneko
-	;;
-	13)
-	startbbrneko
 	;;
 	14)
 	enable_forwarding
