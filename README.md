@@ -17,3 +17,4 @@ BBR(neko):
 ```
 wget -N --no-check-certificate "https://raw.githubusercontent.com/younasiqw/Linux-NetSpeed/master/tools.sh" && chmod +x tools.sh && ./tools.sh
 ```
+FUCKYOUGITHUB I cant upload large files using git, Fu*kuGITHUB
