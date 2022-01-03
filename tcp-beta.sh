@@ -606,9 +606,6 @@ case "$num" in
 	10)
 	optimizing_system
 	;;
-	11)
-	exit 1
-	;;
 	12)
 	check_sys_bbrneko
 	;;
@@ -620,6 +617,9 @@ case "$num" in
 	;;
 	15)
 	tcp_tune
+	;;
+	11)
+	exit 1
 	;;
 	*)
 	clear
