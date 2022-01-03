@@ -607,20 +607,19 @@ case "$num" in
 	optimizing_system
 	;;
 	11)
-	check_sys_bbrneko
-	;;
-	12)
-	startbbrneko
-	;;
-	13)
-	enable_forwarding
-	;;
-	14)
-	tcp_tune
-	;;
-	15)
 	exit 1
 	;;
+	12)
+	check_sys_bbrneko
+	;;
+	13)
+	startbbrneko
+	;;
+	14)
+	enable_forwarding
+	;;
+	15)
+	tcp_tune
 	*)
 	clear
 	echo -e "${Error}:请输入正确数字 [0-11]"
