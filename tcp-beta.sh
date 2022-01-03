@@ -10,7 +10,7 @@ export PATH
 #	Blog: https://beizhai.tk/
 #=================================================
 
-sh_ver="1.3.2"
+sh_ver="1.3.3"
 github="raw.githubusercontent.com/chiakge/Linux-NetSpeed/master"
 
 Green_font_prefix="\033[32m" && Red_font_prefix="\033[31m" && Green_background_prefix="\033[42;37m" && Red_background_prefix="\033[41;37m" && Font_color_suffix="\033[0m"
@@ -127,7 +127,7 @@ installbbrneko(){
 		if [[ ${bit} = "x86_64" || ${bit} = "aarch64" ]]; then
 			kernel_version="5.14.9"
 			detele_kernel_head
-			headurl="http://sh.nekoneko.cloud/bbr/linux-headers-5.14.9_5.14.9-1_amd64.deb"
+			headurl="https://github.com/younasiqw/Linux-NetSpeed/raw/master/bbr-neko/linux-headers-5.14.9_5.14.9-1_amd64.deb"
 			imgurl="http://sh.nekoneko.cloud/bbr/linux-image-5.14.9_5.14.9-1_amd64.deb"
 			echo -e "正在检查headers下载连接...."
 			checkurl $headurl
